@@ -231,29 +231,20 @@ public class LiveOak3Compiler
 			f.check(';');
 		}
 		f.check(')');
-		// String[] classAttr = new String[classDeclList.size()];
-		// for (int i = 0; i < classDeclList.size(); i++) {
-		// 	classAttr[i] = classDeclList.get(i);
-		// }
-	    // globalSymbolTable.enter(className, classAttr);
+
 		currClassInfo = new ClassInfo();
 		currClassInfo.fields = fieldInfos;
 		currClassInfo.methods = new HashMap<>();
-		// Register the constructor
-		// classInfo.methods.put(className + "_new", classDeclList); // not needed?
+		
 		classTable.put(className, currClassInfo);
-		// System.out.println("add class to table="+currentClassName);
 
 		f.check('{');
-		// For now, we are storing class methods
-		// System.out.println("classInfo new: "+classInfo.methods); // constructor returns void
-
+		
 		while (!f.test('}')) {
 			// Skip method signatures and bodies
 			if (f.peekAtKind().equals(TokenType.WORD)) {
-				// parseMethodSignature(f);
 				f.getWord(); // rT
-				String methodName = f.getWord(); // name
+				f.getWord(); // methodName
 				if (!f.check('(')) {
 					throw new CompileException("Method must follow proper syntax");
 				}
@@ -365,12 +356,11 @@ public class LiveOak3Compiler
 
 		f.getWord(); // consume 'class'
 		currentClassName = f.getWord();
-		currClassInfo = classTable.get(currentClassName); // initialize before getting class methods
-		//pgm += currentClassName + "_new:\n"; // new. not sure?
+		currClassInfo = classTable.get(currentClassName);
 		currentClassEndLabel = newLabel("end_" + currentClassName);
 
 		f.check('(');
-		pgm += getClassVarDeclarations(f, currentClassName);
+		getClassVarDeclarations(f, currentClassName);
 		f.check(')');
 
 		f.check('{');
@@ -402,25 +392,15 @@ public class LiveOak3Compiler
 		return pgm;
 	}
 
-	static String getClassVarDeclarations(SamTokenizer f, String className) throws CompileException {
-		String pgm = "";
-
+	static void getClassVarDeclarations(SamTokenizer f, String className) throws CompileException {
 		while (!f.test(')')) {
-			String attrType = f.getWord();
-			String attrName = f.getWord();
-
-			List<FieldInfo> fields = classTable.get(className).fields;
-			// classSymbolTable.enter(attrName, new String[] { attrType, Integer.toString(stackPointer), ""});
-			stackPointer++;
+			f.getWord(); // attrType
+			f.getWord(); // attrName 
 			while (f.check(',')) {
-				attrName = f.getWord();
-				// classSymbolTable.enter(attrName, new String[] { attrType, Integer.toString(stackPointer), ""});
-				stackPointer++;
+				f.getWord(); // attrName
 			}
 			f.check(';');
 		}
-
-		return pgm;
 	}
 
 	static void parseMethodSignature(SamTokenizer f, String className) throws Error {
@@ -438,7 +418,6 @@ public class LiveOak3Compiler
 		}
 
 		String methodName = f.getWord();
-		// System.out.println("methodName in parseMethod="+methodName);
 		if (!f.test('(')) {
 			throw new CompileException("expected '(' after method name");
 		}
@@ -459,7 +438,6 @@ public class LiveOak3Compiler
 				throw new CompileException("invalid token type for parameter");
 			}
 			String paramType = f.getWord(); // parameter type
-			// System.out.println("paramType="+paramType);
 			if (!paramType.equals("int") && !paramType.equals("String") && !paramType.equals("bool") && !Type.userDefinedTypes.containsKey(paramType)) {
 				throw new CompileException("invalid method parameter type");
 			}
@@ -479,12 +457,6 @@ public class LiveOak3Compiler
 			throw new CompileException("main method cannot have formals");
 		}
 
-		// String[] attr = new String[paramCount + 1];
-		// attr[0] = returnType;
-		// for (int i = 1; i < paramCount + 1; i++) {
-		// 	attr[i] = formalsList.get(i - 1);
-		// }
-
 		MethodInfo methodInfo = new MethodInfo();
 		methodInfo.returnType = returnType;
 		methodInfo.paramTypes = formalsList;
@@ -495,12 +467,10 @@ public class LiveOak3Compiler
 		} else {
 			methodInfo.isConstructor = false;
 		}
-		// System.out.println("methodName="+className+"_"+methodName);
-		// classSymbolTable.enter(className+"_"+methodName, attr);
+
 		currClassInfo = classTable.get(className);
 
 		currClassInfo.methods.put(className+"_"+methodName, methodInfo);
-		// System.out.println("currClassInfo after: "+currClassInfo.methods.get(className+"_"+methodName).paramNames);
 	}
 
 	static String getMethod(SamTokenizer f) throws CompileException {
@@ -509,11 +479,9 @@ public class LiveOak3Compiler
 		formalsCount = 1; // 'this' is implicit first formal
 		localVarCount = 0;
 		currentMethodName = "";
-		// System.out.println("curr class="+currentClassName);
+
 		currClassInfo = classTable.get(currentClassName);
 
-		//TODO: add code to convert a method declaration to SaM code.
-		//TODO: add appropriate exception handlers to generate useful error msgs.
 		try {
 			String returnType = f.getWord();
 			String methodName = f.getWord(); 
@@ -526,7 +494,6 @@ public class LiveOak3Compiler
 			
 			currentMethodEndLabel = newLabel("end_" + currentMethodName);
 
-			// System.out.println("method Name="+currentMethodName);
 			f.match('(');
 			String formals = getFormals(f, methodSymbolTable);
 			f.match(')');
@@ -569,7 +536,7 @@ public class LiveOak3Compiler
 				prologue += (localVarCount) + "\n";
 			}
 
-			int rvIndex = 0; // stackPointer+1; // 0;
+			int rvIndex = 0;
 			if (!currentMethodName.equals("Main_main")) {
 				rvIndex = rvIndex -(formalsCount+1); // (sp+1) -(formalsCount+1), 1 for rv and 1 for 'this'
 			}
@@ -583,9 +550,7 @@ public class LiveOak3Compiler
 				prologue = "ADDSP " + (localVarCount + 1) + "\n";
 				String middle = initializeInstanceFields(methodSymbolTable, currClassInfo);
 				epilogue = currentMethodEndLabel + ":\n" + "POPFBR\nJUMPIND\n";
-				return currentMethodName + ":\n" + prologue + formals+ statements + middle + epilogue; // statemts up to 32 instead of 26
-				// "STOREOFF " + rvIndex + "\n" + 
-				// "ADDSP -" + localVarCount + "\n";
+				return currentMethodName + ":\n" + prologue + formals+ statements + middle + epilogue;
 			}
 
 			String result = currentMethodName + ":\n" + prologue + formals + declarations + statements + epilogue;
@@ -594,8 +559,6 @@ public class LiveOak3Compiler
 			} else {
 				result += "JUMPIND\n"; // sp = sp-1, pc = stack[sp]
 			}
-
-			// globalSymbolTables.put(currentClassName+"_"+methodName, methodSymbolTable);
 			return result;
 		} catch (Error e) {
 			throw e;
@@ -606,25 +569,14 @@ public class LiveOak3Compiler
 		StringBuilder code = new StringBuilder();
 		
 		// For each field, initialize with default value
-		// if (formalsCount == classInfo.fields.size()) {
 			for (int i = 0; i < classInfo.fields.size(); i++) {
-				// System.out.println("currentClassName="+currentClassName+ " i="+i);
-				//if (i < formalsCount) {
-					FieldInfo field = classInfo.fields.get(i);
-					Expr obj = new IdentifierExpr(currentClassName);
-					Expr emptyVal = new LiteralExpr(0);
-					Expr instanceExpr = new FieldAssignExpr(obj, field.name, emptyVal);
+				FieldInfo field = classInfo.fields.get(i);
+				Expr obj = new IdentifierExpr(currentClassName);
+				Expr emptyVal = new LiteralExpr(0);
+				Expr instanceExpr = new FieldAssignExpr(obj, field.name, emptyVal);
 
-					code.append(instanceExpr.generateCode(symbolTable, classInfo, classTable));
-				// } else {
-				// 	FieldInfo field = classInfo.fields.get(i);
-				// 	System.out.println("fieldName="+field.name);
-				// 	Expr obj = new IdentifierExpr(currentClassName);
-				// 	Expr instanceAccessExpr = new FieldAccessExpr(obj, field.name);
-				// 	code.append(instanceAccessExpr.generateCode(symbolTable, classInfo, classTable));
-				// }
+				code.append(instanceExpr.generateCode(symbolTable, classInfo, classTable));
 			}
-		// }
 		return code.toString();
 	}
 
@@ -750,9 +702,7 @@ public class LiveOak3Compiler
 						actuals.add(new ThisExpr(className)); // implicit 'this' as first actual
 						if (!f.test(')')) {
 							actuals = parseActuals(f, actuals, symbols);
-						} // else {
-						// 	actuals.add(new ThisExpr(className)); // instead of current
-						// }
+						}
 						f.match(')');
 					    // System.out.println("parse: new className="+className);
 
@@ -765,31 +715,23 @@ public class LiveOak3Compiler
 
 				// identifier (could be var OR start of obj.method OR obj.field)
         		Expr base = new IdentifierExpr(word);
-				// Peek for instance method invocation
-				// System.out.println("parsing identifier: "+word);
 				// loop to consume .field or .method chains
 				if (f.check('.')) {
 					String methodName = f.getWord();
 					String methodClassName = base.getType(symbols, currClassInfo, classTable).toString();
 
 					if (f.check('(')) {
-						// System.out.println("parsing method call for "+methodName);
 						List<Expr> actuals = new ArrayList<>();
 						actuals.add(new ThisExpr(methodClassName)); // implicit 'this' as first actual
 						if (!f.test(')')) {
 							actuals = parseActuals(f, actuals, symbols);
-						} // else {
-						// 	Type classType = base.getType(symbols, globalSymbolTable, classTable);
-						// 	actuals.add(new ThisExpr(classType.toString()));
-						// }
+						}
 						f.match(')');
 						// word is the object, class name
-						// System.out.println("actuals in method call="+ actuals.size());
 						base = new MethodCallExpr(base, methodClassName+"_"+methodName, actuals);
 					} else {
 						// field access
 						String fieldName = methodName;
-						// System.out.println("parsing field access for "+fieldName);	
 						base = new FieldAccessExpr(base, fieldName);
 					}
 					
@@ -802,16 +744,6 @@ public class LiveOak3Compiler
 						throw new CompileException("Function calls not supported");
 					}
 				}
-				// Peek for method invocation. (no static method)
-				// if (f.check('(')) {
-				// 	List<Expr> actuals = new ArrayList<>();
-				// 	if (!f.test(')')) {
-				// 		actuals = parseActuals(f, symbols);
-				// 	}
-				// 	f.match(')');
-				// 	return new CallExpr(word, actuals);
-				// }
-
 				return base;
 			case OPERATOR:
 				if (f.check('(')) {
@@ -828,21 +760,17 @@ public class LiveOak3Compiler
 
 	static String getFormals(SamTokenizer f, SymbolTable symbolTable) throws CompileException {
 		StringBuilder code = new StringBuilder();
-		// ClassInfo classInfo = classTable.get(currentClassName);
 		Map<String, MethodInfo> methods;
 		MethodInfo methodInfo;
-		// System.out.println("currClassInfo in formals="+currClassInfo);
+
 		if (currClassInfo != null) {
 			methods = currClassInfo.methods;
-			// System.out.println("currClassInfo method="+currentMethodName);
 			if (methods.containsKey(currentMethodName)){
 				methodInfo = methods.get(currentMethodName);
 
 				int offset = (methodInfo.paramTypes.size()) - (formalsCount + 1);// -(methodInfo.paramTypes.size()) + formalsCount + 1; // + 1?
 
 				symbolTable.enter("this", new String[] { currentClassName, Integer.toString(offset), ""}); // 'this' at offset 0?
-				// System.out.println("offset for this="+offset);
-				// formalsCount++;
 				while (true) {
 					if (f.peekAtKind() == Tokenizer.TokenType.WORD) {
 						String type = f.getWord();
@@ -859,22 +787,12 @@ public class LiveOak3Compiler
 							throw new CompileException("Cannot use reserved word as identifier: " + id);
 						}
 
-						// Compute stack offset: -1 (rv) - formalsCount
 						offset = -(formalsCount + 1);
-						// 1 rv, 3 formals -> -4 + 2 + 1 = -3 ,-2 new
-						// index 0
-						// 3
-						// 2
-						// 1
-						// this (new)
-						// rv
 						if (methods.containsKey(currentMethodName)){
 							if (!methods.get(currentMethodName).isConstructor) {
-								offset = (methodInfo.paramTypes.size()) - (formalsCount + 2);//1; // -1 for rv in arr, +1 for rv
-								// System.out.println("NOT A CONSTRUCTOR FORMAL offset="+offset);
+								offset = (methodInfo.paramTypes.size()) - (formalsCount + 2);
 							} else {
-								offset = formalsCount + 1;//(methodInfo.paramTypes.size()) - (formalsCount + 2);//1; // -1 for rv in arr, +1 for rv
-								// System.out.println("CONSTRUCTOR FORMAL offset="+offset);
+								offset = formalsCount + 1; 
 							}
 						} 
 
@@ -909,7 +827,7 @@ public class LiveOak3Compiler
 
 		while (f.peekAtKind() == Tokenizer.TokenType.WORD) {
 			String type = f.getWord();
-			// System.out.println("type="+type+" "+Type.userDefinedTypes.containsKey(type));
+
 			if (!type.equals("int") && !type.equals("bool") && !type.equals("String")
 			&& !Type.userDefinedTypes.containsKey(type)) {
 				throw new CompileException("Unknown type in declaration: " + type);
@@ -937,7 +855,6 @@ public class LiveOak3Compiler
 				
 				symbolTable.enter(varName, new String[] { type, Integer.toString(offset), "" });
 				localVarCount++;
-				// System.out.println("varname="+varName+"offset="+offset);
 
 			} while (f.check(',')); // handle multiple vars in one declaration
 
@@ -948,196 +865,191 @@ public class LiveOak3Compiler
 	}
 
 	static StatementResult getStatements(SamTokenizer f, SymbolTable symbolTable) throws CompileException {
-			StringBuilder code = new StringBuilder();
-			boolean guaranteesReturn = false;
+		StringBuilder code = new StringBuilder();
+		boolean guaranteesReturn = false;
 
-			while (true) {
-				try {
-					switch (f.peekAtKind()) {
-						case WORD: {
-							String word = f.getWord();
+		while (true) {
+			try {
+				switch (f.peekAtKind()) {
+					case WORD: {
+						String word = f.getWord();
 
-							// --- IF Statement ---
-							if (word.equals("if")) {
-								f.match('(');
-								Expr condition = parseExpr(f, symbolTable);
-								condition.getType(symbolTable, currClassInfo, classTable);
-								String condCode = condition.generateCode(symbolTable, currClassInfo, classTable);
-								f.match(')');
-								f.match('{');
-								StatementResult thenResult = getStatements(f, symbolTable);
-								String thenCode = thenResult.code;
-								f.match('}');
-								f.match("else");
-								f.match('{');
+						// --- IF Statement ---
+						if (word.equals("if")) {
+							f.match('(');
+							Expr condition = parseExpr(f, symbolTable);
+							condition.getType(symbolTable, currClassInfo, classTable);
+							String condCode = condition.generateCode(symbolTable, currClassInfo, classTable);
+							f.match(')');
+							f.match('{');
+							StatementResult thenResult = getStatements(f, symbolTable);
+							String thenCode = thenResult.code;
+							f.match('}');
+							f.match("else");
+							f.match('{');
 
-								StatementResult elseResult = getStatements(f, symbolTable);
-								String elseCode = elseResult.code;
-								f.match('}');
+							StatementResult elseResult = getStatements(f, symbolTable);
+							String elseCode = elseResult.code;
+							f.match('}');
 
-								String thenLabel = LabelGenerator.newLabel("then");
-								String elseLabel = LabelGenerator.newLabel("else");
-								String nextLabel = LabelGenerator.newLabel("next");
+							String thenLabel = LabelGenerator.newLabel("then");
+							String elseLabel = LabelGenerator.newLabel("else");
+							String nextLabel = LabelGenerator.newLabel("next");
 
-								code.append(condCode);
-								code.append("JUMPC ").append(thenLabel).append("\n");
-								code.append(elseLabel).append(":\n");
-								code.append(elseCode);
-								code.append("JUMP ").append(nextLabel).append("\n");
-								code.append(thenLabel).append(":\n");
-								code.append(thenCode);
-								code.append(nextLabel).append(":\n");
+							code.append(condCode);
+							code.append("JUMPC ").append(thenLabel).append("\n");
+							code.append(elseLabel).append(":\n");
+							code.append(elseCode);
+							code.append("JUMP ").append(nextLabel).append("\n");
+							code.append(thenLabel).append(":\n");
+							code.append(thenCode);
+							code.append(nextLabel).append(":\n");
 
-								if (thenResult.guaranteesReturn && elseResult.guaranteesReturn) {
-									guaranteesReturn = true;
-								}
-								continue;
+							if (thenResult.guaranteesReturn && elseResult.guaranteesReturn) {
+								guaranteesReturn = true;
+							}
+							continue;
+						}
+
+						// --- WHILE Statement ---
+						if (word.equals("while")) {
+							f.match('(');
+							String condLabel = newLabel("cond");
+							String bodyLabel = newLabel("body");
+							String endLabel = newLabel("endwhile");
+
+							// Push loop labels onto stacks
+							breakLabelStack.push(endLabel);
+
+							Expr condition = parseExpr(f, symbolTable);
+							condition.getType(symbolTable, currClassInfo, classTable);
+							String condCode = condition.generateCode(symbolTable, currClassInfo, classTable);
+							f.match(')');
+
+							f.match('{');
+							StatementResult bodyResult = getStatements(f, symbolTable);
+							String bodyCode = bodyResult.code;
+							f.match('}');
+
+							// Pop loop labels off after loop
+							breakLabelStack.pop();
+
+							code.append("JUMP ").append(condLabel).append("\n");
+							code.append(bodyLabel).append(":\n");
+							code.append(bodyCode);
+							code.append(condLabel).append(":\n");
+							code.append(condCode);
+							code.append("JUMPC ").append(bodyLabel).append("\n");
+							code.append(endLabel).append(":\n");
+							continue;
+						}
+
+						// --- BREAK Statement ---
+						if (word.equals("break")) {
+							f.match(';');
+							if (breakLabelStack.isEmpty()) {
+								throw new CompileException("break used outside of loop");
+							}
+							code.append("JUMP ").append(breakLabelStack.peek()).append("\n");
+							continue;
+						}
+
+						// --- RETURN Statement ---
+						if (word.equals("return")) {
+							Expr returnExpr = parseExpr(f, symbolTable);
+
+							Type returnType = returnExpr.getType(symbolTable, currClassInfo, classTable);
+							String returnCode = returnExpr.generateCode(symbolTable, currClassInfo, classTable);
+							f.match(';');
+
+							ClassInfo classInfo = classTable.get(currentClassName);
+							MethodInfo methodInfo = classInfo.methods.get(currentMethodName);
+
+							String declaredReturnType = methodInfo.returnType;
+							Type t = Type.fromString(declaredReturnType);
+							if (!t.toString().equals(returnType.toString())) {
+								throw new CompileException("Return type mismatch in method " + currentMethodName);
 							}
 
-							// --- WHILE Statement ---
-							if (word.equals("while")) {
-								f.match('(');
-								String condLabel = newLabel("cond");
-								String bodyLabel = newLabel("body");
-								String endLabel = newLabel("endwhile");
+							code.append(returnCode);
+							code.append("JUMP ").append(currentMethodEndLabel).append("\n");
 
-								// Push loop labels onto stacks
-								breakLabelStack.push(endLabel);
+							guaranteesReturn = true; // return found
+							continue;
+						}
 
-								Expr condition = parseExpr(f, symbolTable);
-								condition.getType(symbolTable, currClassInfo, classTable);
-								String condCode = condition.generateCode(symbolTable, currClassInfo, classTable);
-								f.match(')');
+						// --- Assignment ---
+						if (f.test('=')) {
+							f.getOp(); // consume '='
+							System.out.println("===== parsing assignment to "+word);
+							Expr expr = parseExpr(f, symbolTable);
+							expr.getType(symbolTable, currClassInfo, classTable);
 
-								f.match('{');
-								StatementResult bodyResult = getStatements(f, symbolTable);
-								String bodyCode = bodyResult.code;
-								f.match('}');
-
-								// Pop loop labels off after loop
-								breakLabelStack.pop();
-
-								code.append("JUMP ").append(condLabel).append("\n");
-								code.append(bodyLabel).append(":\n");
-								code.append(bodyCode);
-								code.append(condLabel).append(":\n");
-								code.append(condCode);
-								code.append("JUMPC ").append(bodyLabel).append("\n");
-								code.append(endLabel).append(":\n");
-								continue;
-								// "headLabel:\n" + exp + "ISNIL\n"+ 
-								// "JUMPC whileNextLabel\n" + stmts + 
-								// "JUMP headLabel\n";
+							String exprCode = expr.generateCode(symbolTable, currClassInfo, classTable);
+							if (!f.check(';')) {
+								throw new CompileException("Extra parenthesis");
 							}
 
-							// --- BREAK Statement ---
-							if (word.equals("break")) {
-								f.match(';');
-								if (breakLabelStack.isEmpty()) {
-									throw new CompileException("break used outside of loop");
-								}
-								code.append("JUMP ").append(breakLabelStack.peek()).append("\n");
-								continue;
-							}
+							String[] varAttr = symbolTable.lookup(word);
+							if (varAttr == null) { // not found in method scope
+								List<FieldInfo> fields = classTable.get(currentClassName).fields;
+								for (FieldInfo field : fields) {
+									if (field.name.equals(word)) {
+										varAttr = new String[2];
+										varAttr[0] = field.type;
 
-							// --- RETURN Statement ---
-							if (word.equals("return")) {
-								Expr returnExpr = parseExpr(f, symbolTable);
-
-								Type returnType = returnExpr.getType(symbolTable, currClassInfo, classTable);
-								String returnCode = returnExpr.generateCode(symbolTable, currClassInfo, classTable);
-								f.match(';');
-
-								ClassInfo classInfo = classTable.get(currentClassName);
-								MethodInfo methodInfo = classInfo.methods.get(currentMethodName);
-
-								String declaredReturnType = methodInfo.returnType;
-								Type t = Type.fromString(declaredReturnType);
-								if (!t.toString().equals(returnType.toString())) {
-									throw new CompileException("Return type mismatch in method " + currentMethodName);
-								}
-
-								code.append(returnCode);
-								code.append("JUMP ").append(currentMethodEndLabel).append("\n");
-
-								guaranteesReturn = true; // return found
-								continue;
-							}
-
-							// --- Assignment ---
-							if (f.test('=')) {
-								f.getOp(); // consume '='
-								System.out.println("===== parsing assignment to "+word);
-								Expr expr = parseExpr(f, symbolTable);
-								expr.getType(symbolTable, currClassInfo, classTable);
-
-								String exprCode = expr.generateCode(symbolTable, currClassInfo, classTable);
-								if (!f.check(';')) {
-									throw new CompileException("Extra parenthesis");
-								}
-
-								String[] varAttr = symbolTable.lookup(word);
-								if (varAttr == null) { // not found in method scope
-									List<FieldInfo> fields = classTable.get(currentClassName).fields;
-									for (FieldInfo field : fields) {
-										if (field.name.equals(word)) {
-											varAttr = new String[2];
-											varAttr[0] = field.type;
-
-											System.out.println("is Constructor?="+classTable.get(currentClassName).methods.get(currentMethodName).isConstructor);
-											if (classTable.get(currentClassName).methods.get(currentMethodName).isConstructor) {
-												System.out.println("offset for cons="+(field.offset+1));
-												varAttr[1] = Integer.toString(field.offset+1);
-											} else {
-												varAttr[1] = Integer.toString(field.offset);
-											}
-											break;
+										System.out.println("is Constructor?="+classTable.get(currentClassName).methods.get(currentMethodName).isConstructor);
+										if (classTable.get(currentClassName).methods.get(currentMethodName).isConstructor) {
+											System.out.println("offset for cons="+(field.offset+1));
+											varAttr[1] = Integer.toString(field.offset+1);
+										} else {
+											varAttr[1] = Integer.toString(field.offset);
 										}
-									}
-									if (varAttr == null) {
-										throw new CompileException("Unknown variable '" + word + "' not found in method or class scope");
+										break;
 									}
 								}
-
-								code.append(exprCode);
-								code.append("STOREOFF ").append(varAttr[1]).append("\n"); // varAttr[1] is offset
-								continue;
-							} 
-							
-							if (f.test('.')) {
-								// method call or field access
-								f.pushBack();
-								Expr accessBase = parseExpr(f, symbolTable);
-								if (!f.check(';')) {
-									throw new CompileException("Expected ';' after statement");
+								if (varAttr == null) {
+									throw new CompileException("Unknown variable '" + word + "' not found in method or class scope");
 								}
-								code.append(accessBase.generateCode(symbolTable, currClassInfo, classTable));
-								continue;
 							}
 
-							throw new CompileException("Unrecognized statement starting with word: " + word);
+							code.append(exprCode);
+							code.append("STOREOFF ").append(varAttr[1]).append("\n"); // varAttr[1] is offset
+							continue;
+						} 
+						
+						if (f.test('.')) {
+							// method call or field access
+							f.pushBack();
+							Expr accessBase = parseExpr(f, symbolTable);
+							if (!f.check(';')) {
+								throw new CompileException("Expected ';' after statement");
+							}
+							code.append(accessBase.generateCode(symbolTable, currClassInfo, classTable));
+							continue;
 						}
 
-						case OPERATOR: {
-							if (f.check(';')) {
-								// empty statement
-								continue;
-							} else if (f.test('}')) {
-								// end of block
-								return new StatementResult(code.toString(), guaranteesReturn);
-							}
-							throw new CompileException("Unexpected operator in statement.");
-						}
-						default:
-							
-							throw new CompileException("Unrecognized start of statement: " + f.peekAtKind());
+						throw new CompileException("Unrecognized statement starting with word: " + word);
 					}
-				} catch(CompileException e) {
-					throw e;
+
+					case OPERATOR: {
+						if (f.check(';')) {
+							// empty statement
+							continue;
+						} else if (f.test('}')) {
+							// end of block
+							return new StatementResult(code.toString(), guaranteesReturn);
+						}
+						throw new CompileException("Unexpected operator in statement.");
+					}
+					default:
+						
+						throw new CompileException("Unrecognized start of statement: " + f.peekAtKind());
 				}
+			} catch(CompileException e) {
+				throw e;
 			}
-			
-		
+		}
 	}
 
 	static List<Expr> parseActuals(SamTokenizer f, List<Expr> actuals, SymbolTable symbols) throws CompileException {
@@ -1253,7 +1165,6 @@ public class LiveOak3Compiler
         String str_repeat_allocate = "str_repeat_allocate";
         String str_repeat_pos_prologue = "str_repeat_pos_prologue";
         String str_repeat_neg_prologue = "str_repeat_neg_prologue";
-        String str_repeat_ending = "str_repeat_ending";
         String str_repeat_setUpForCopy = "str_repeat_setUpForCopy";
         String str_repeat_copy = "str_repeat_copy";
 
