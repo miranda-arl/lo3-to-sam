@@ -67,7 +67,7 @@ public class NewExpr implements Expr {
                 code.append(arg.generateCode(symbolTable, classInfo, classTables));
             } 
             else {
-                System.out.println("empty field in constructor="+ currClassInfo.fields.get(i));
+                // System.out.println("empty field in constructor="+ currClassInfo.fields.get(i));
                 code.append("PUSHIMM 0\n"); // empty for now
             }
         }

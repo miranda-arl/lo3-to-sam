@@ -1008,12 +1008,16 @@ public class LiveOak3Compiler
 
 										System.out.println("is Constructor?="+classTable.get(currentClassName).methods.get(currentMethodName).isConstructor);
 										if (classTable.get(currentClassName).methods.get(currentMethodName).isConstructor) {
-											System.out.println("offset for cons="+(field.offset+1));
 											varAttr[1] = Integer.toString(field.offset+1);
 										} else {
-											
-											varAttr[1] = Integer.toString(field.offset);
+											varAttr[1] = Integer.toString(field.offset +1); // no 1
+											if (currentMethodName.equals("Main_main")) {
+												varAttr[1] = Integer.toString(field.offset);
+											}
+											// yes +1 for field var in non
+											// no for r assignment
 										}
+										System.out.println("offset for "+word+"="+(varAttr[1]));
 										break;
 									}
 								}
@@ -1023,6 +1027,7 @@ public class LiveOak3Compiler
 							}
 
 							code.append(exprCode);
+							System.out.println("varAttr not null="+(varAttr[1]));
 							code.append("STOREOFF ").append(varAttr[1]).append("\n"); // varAttr[1] is offset
 							continue;
 						} 
