@@ -1,0 +1,72 @@
+start:
+JUMP Main_main
+employee_new:
+ADDSP 1
+PUSHOFF 2
+STOREOFF 2
+PUSHOFF 1
+PUSHIMM 0
+ADD
+PUSHOFF 1
+STOREIND
+PUSHOFF 1
+PUSHIMM 1
+ADD
+PUSHOFF 2
+STOREIND
+end_employee_new_73:
+POPFBR
+JUMPIND
+employee_EmployeeValidity:
+ADDSP 0
+PUSHOFF -1
+PUSHIMM 1
+ADD
+PUSHIND
+PUSHIMM 9
+GREATER
+JUMPC then_75
+else_76:
+PUSHIMM 0
+JUMP end_employee_EmployeeValidity_74
+JUMP next_77
+then_75:
+PUSHIMM 1
+JUMP end_employee_EmployeeValidity_74
+next_77:
+PUSHIMM 1
+PUSHIMM -1
+TIMES
+JUMP end_employee_EmployeeValidity_74
+end_employee_EmployeeValidity_74:
+STOREOFF -2
+ADDSP -0
+JUMPIND
+Main_main:
+ADDSP 2
+PUSHIMM 0
+LINK
+PUSHIMM 2
+MALLOC
+PUSHIMM 11
+PUSHSP
+PUSHIMM 3
+SUB
+PUSHFBR
+JSR employee_new
+POPFBR
+ADDSP -2
+STOREOFF -1
+POPFBR
+STOREOFF 1
+PUSHIMM 0
+PUSHOFF 1
+LINK
+JSR employee_EmployeeValidity
+POPFBR
+ADDSP -1
+JUMP end_Main_main_79
+end_Main_main_79:
+STOREOFF 0
+ADDSP -1
+STOP

@@ -1,0 +1,76 @@
+start:
+JUMP Main_main
+Example_2_new:
+ADDSP 1
+PUSHOFF 1
+PUSHIMM 0
+ADD
+PUSHOFF 1
+STOREIND
+end_Example_2_new_23:
+POPFBR
+JUMPIND
+Example_2_addNumbers:
+ADDSP 1
+PUSHIMM 0
+STOREOFF 2
+JUMP cond_25
+body_26:
+PUSHOFF 2
+PUSHOFF -1
+ADD
+STOREOFF 2
+PUSHOFF -1
+PUSHIMM 1
+SUB
+STOREOFF -1
+cond_25:
+PUSHOFF -1
+PUSHIMM 0
+GREATER
+JUMPC body_26
+endwhile_27:
+PUSHOFF 2
+JUMP end_Example_2_addNumbers_24
+end_Example_2_addNumbers_24:
+STOREOFF -3
+ADDSP -1
+JUMPIND
+Example_2_updateBool:
+ADDSP 0
+PUSHOFF -1
+PUSHIMM 1
+AND
+JUMP end_Example_2_updateBool_28
+end_Example_2_updateBool_28:
+STOREOFF -3
+ADDSP -0
+JUMPIND
+Main_main:
+ADDSP 2
+PUSHIMM 0
+LINK
+PUSHIMM 1
+MALLOC
+PUSHSP
+PUSHIMM 2
+SUB
+PUSHFBR
+JSR Example_2_new
+POPFBR
+ADDSP -1
+STOREOFF -1
+POPFBR
+STOREOFF 1
+PUSHIMM 0
+PUSHOFF 1
+PUSHIMM 3
+LINK
+JSR Example_2_addNumbers
+POPFBR
+ADDSP -2
+JUMP end_Main_main_30
+end_Main_main_30:
+STOREOFF 0
+ADDSP -1
+STOP
