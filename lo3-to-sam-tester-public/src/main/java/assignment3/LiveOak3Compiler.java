@@ -491,7 +491,7 @@ public class LiveOak3Compiler
 			}
 
 			currentMethodName = currentClassName+"_"+methodName;
-			
+			System.out.println("currentMethodName="+currentMethodName);
 			currentMethodEndLabel = newLabel("end_" + currentMethodName);
 
 			f.match('(');
@@ -530,8 +530,8 @@ public class LiveOak3Compiler
 
 			String prologue = "ADDSP ";
 			if (currentMethodName.equals("Main_main")) {
-				// System.out.println("");
-				prologue += (localVarCount + 1) + "\n";
+				System.out.println("In Main_main ADDSP ="+(localVarCount + 2));
+				prologue += (localVarCount + 2) + "\n"; //1
 			} else {
 				prologue += (localVarCount) + "\n";
 			}
@@ -545,6 +545,12 @@ public class LiveOak3Compiler
 			currentMethodEndLabel + ":\n" + 
 			"STOREOFF " + rvIndex + "\n" + 
 			"ADDSP -" + localVarCount + "\n";
+
+			if (currentMethodName.equals("Main_main")) {
+				epilogue = currentMethodEndLabel + ":\n" + 
+					"STOREOFF " + rvIndex + "\n" + 
+					"ADDSP -" + (localVarCount + 1) + "\n";
+			}
 
 			if (methodName.equals("new")) {
 				prologue = "ADDSP " + (localVarCount + 1) + "\n";
@@ -768,7 +774,7 @@ public class LiveOak3Compiler
 			if (methods.containsKey(currentMethodName)){
 				methodInfo = methods.get(currentMethodName);
 
-				int offset = (methodInfo.paramTypes.size()) - (formalsCount + 1);// -(methodInfo.paramTypes.size()) + formalsCount + 1; // + 1?
+				int offset = (methodInfo.paramTypes.size()) - (formalsCount + 1);
 
 				symbolTable.enter("this", new String[] { currentClassName, Integer.toString(offset), ""}); // 'this' at offset 0?
 				while (true) {
@@ -791,8 +797,10 @@ public class LiveOak3Compiler
 						if (methods.containsKey(currentMethodName)){
 							if (!methods.get(currentMethodName).isConstructor) {
 								offset = (methodInfo.paramTypes.size()) - (formalsCount + 2);
+								System.out.println("IS NOT CONSTRUCTOR formal offset="+offset);
 							} else {
 								offset = formalsCount + 1; 
+								System.out.println("IS CONSTRUCTOR formal offset="+offset);
 							}
 						} 
 
@@ -1003,6 +1011,7 @@ public class LiveOak3Compiler
 											System.out.println("offset for cons="+(field.offset+1));
 											varAttr[1] = Integer.toString(field.offset+1);
 										} else {
+											
 											varAttr[1] = Integer.toString(field.offset);
 										}
 										break;

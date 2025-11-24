@@ -1,7 +1,7 @@
 start:
 JUMP Main_main
 Main_main:
-ADDSP 3
+ADDSP 4
 PUSHIMM 0
 LINK
 PUSHIMM 1

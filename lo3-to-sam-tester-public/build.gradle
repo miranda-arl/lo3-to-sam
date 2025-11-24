@@ -33,7 +33,7 @@ java {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'assignment2.LiveOak2Compiler'
+        attributes 'Main-Class': 'assignment3.LiveOak3Compiler'
     }
     // sourceCompatibility = JavaVersion.VERSION_11
     // targetCompatibility = JavaVersion.VERSION_11

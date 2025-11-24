@@ -23,7 +23,7 @@ public class LiteralExpr implements Expr {
         if (value instanceof Integer) return "PUSHIMM " + value + "\n";
         if (value instanceof Boolean) return "PUSHIMM " + ((boolean)value ? 1 : 0) + "\n";
         if (value instanceof String) return "PUSHIMMSTR \"" + value + "\"\n";
-        if (value == null) return "PUSHIMM 0"; // Added code generation for null literal. pushimm -1?
+        if (value == null) return "PUSHIMM 0\n"; // Added code generation for null literal. pushimm -1?
         throw new CompileException("Cannot generate code for literal: " + value);
     }
 }
