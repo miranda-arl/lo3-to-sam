@@ -89,7 +89,7 @@ public class LiveOak3Compiler
 	static String getProgram(SamTokenizer f1, SamTokenizer f2, SamTokenizer f3) throws CompileException {
 		try {
 			String pgm="";
-			pgm += "start:\nJUMP Main_main\n";
+			pgm += "start:\nJUMP Main_new_start\n"; ////main\n";
 
 			globalSymbolTable = new SymbolTable();
 			classTable = new HashMap<>();
@@ -192,6 +192,7 @@ public class LiveOak3Compiler
 		}
 		currentClassName = className;
 		Type classType = new Type(className);
+		System.out.println("classname as TYPE="+className);
 		classType.registerUserDefinedType(className);
 
 		f.check('(');
@@ -209,6 +210,7 @@ public class LiveOak3Compiler
 			fInfo = new FieldInfo();
 			String attrType = f.getWord();
 			String attrName = f.getWord(); // attrName
+			System.out.println("attrName="+attrName+" attrType="+attrType);
 			classDeclList.add(attrType);
 
 			fInfo.name = attrName;
@@ -279,32 +281,41 @@ public class LiveOak3Compiler
 
 	static String addImplicitConstructor(String className) {
 		// Skip Main class; it does not need a constructor
-		if (className.equals("Main")) return "";
+		// if (className.equals("Main")) return ""; ??
 
 		// if no explicit constructor
 		ClassInfo classInfo = classTable.get(className);
+		
 		if (!classInfo.methods.containsKey(className+"_"+"new")) {
-			// System.out.println("class with implicit con: "+className);
-			List<String> fieldNames = new ArrayList<>();
+ 
+ 			List<String> fieldNames = new ArrayList<>();
+			List<String> fieldTypes = new ArrayList<>();
 			for (FieldInfo field : classInfo.fields) {
 					fieldNames.add(field.name);
+					fieldTypes.add(field.type);
 			}
 
 			MethodInfo methodInfo = new MethodInfo();
 			methodInfo.returnType = "void";
-			methodInfo.paramTypes = classDeclList;
+			methodInfo.paramTypes = fieldTypes; //classDeclList;
 			methodInfo.paramNames = fieldNames;	
 			methodInfo.isConstructor = true;
 
-			// String[] attr = new String[classDeclList.size()+1];
-			// attr[0] = "void";
-			// for (int i = 0; i < classDeclList.size(); i++) {
-			// 	attr[i+1] = classDeclList.get(i); 
-			// }
-			// classSymbolTable.enter(className+"_new", attr);
 			classInfo.methods.put(className+"_new", methodInfo);
-			// System.out.println("No explicit constructor. Added one="+className+"_new");
-			// System.out.println("classInfo: "+classInfo.methods.get(className+"_new").paramNames);
+			
+			if (className.equals("Main")) {
+				List<Expr> decl = new ArrayList<>();
+				decl.add(new ThisExpr(className));
+
+				for (int i = 1; i < fieldNames.size(); i++) {
+					decl.add(new IdentifierExpr(fieldNames.get(i)));
+				}
+
+				Expr mainExpr = new NewExpr("Main", decl);
+				return "Main_new_start:\n ADDSP " + (decl.size()-1) + "\n" + mainExpr.generateCode(globalSymbolTable, classInfo, classTable) + "JUMP Main_main\n" +
+				"Main_new:\nJUMPIND\n";
+			}
+
 			return generateImplicitConstructorCode(className, classInfo);
 		}
 		return "";
@@ -314,10 +325,8 @@ public class LiveOak3Compiler
 		StringBuilder code = new StringBuilder();
 		code.append(className).append("_new:\n");
 
-		code.append("ADDSP 1\n"); // 0
-
 		// Save frame pointer
-		// code.append("PUSHFBR\n"); // //LINK\n");
+		code.append("PUSHFBR\n");
 
 		// Offset for fields inside object
 		int offset = 0;
@@ -343,7 +352,12 @@ public class LiveOak3Compiler
 		code.append("POPFBR\n");
 
 		// Implicit return (constructor doesn't return explicitly)
-		code.append("JUMPIND\n");
+		// if (className.equals("Main")) {
+		// 	code.append("JUMP Main_main\n");
+		// } else {
+			code.append("JUMPIND\n");
+	//	}
+		
 
 		return code.toString();
 	}
@@ -461,6 +475,7 @@ public class LiveOak3Compiler
 		methodInfo.returnType = returnType;
 		methodInfo.paramTypes = formalsList;
 		methodInfo.paramNames = formalNames;
+		
 		if (className.equals(methodName)) {
 			methodName = "new";
 			methodInfo.isConstructor = true;
@@ -553,7 +568,9 @@ public class LiveOak3Compiler
 			}
 
 			if (methodName.equals("new")) {
-				prologue = "ADDSP " + (localVarCount + 1) + "\n";
+				for (int i = 0; i < (localVarCount + 1); i++) {
+					prologue = "PUSHIMM 0\n"; 
+				}
 				String middle = initializeInstanceFields(methodSymbolTable, currClassInfo);
 				epilogue = currentMethodEndLabel + ":\n" + "POPFBR\nJUMPIND\n";
 				return currentMethodName + ":\n" + prologue + formals+ statements + middle + epilogue;
@@ -775,7 +792,9 @@ public class LiveOak3Compiler
 				methodInfo = methods.get(currentMethodName);
 
 				int offset = (methodInfo.paramTypes.size()) - (formalsCount + 1);
-
+				// if (currentMethodName.equals("Main_main")) {
+				// 	System.out.println("offset for 'this' in main="+offset);
+				// }
 				symbolTable.enter("this", new String[] { currentClassName, Integer.toString(offset), ""}); // 'this' at offset 0?
 				while (true) {
 					if (f.peekAtKind() == Tokenizer.TokenType.WORD) {
@@ -856,11 +875,12 @@ public class LiveOak3Compiler
 
 				// Compute stack offset: 1 (rv) + formalsCount + localVarCount
 				// one for link, one for fbr
-				int offset = 2  + localVarCount;
+				int offset = 2  + localVarCount; // +1 more?
 				if (currentMethodName.equals("Main_main")) {
-					offset = 1 + localVarCount; // one for rv
+					offset = 1 + localVarCount; // one for rv and 1 for this
+					// 2 (28), 1 (18)
 				}
-				
+				System.out.println("varName in decl="+varName+ " offset="+offset);
 				symbolTable.enter(varName, new String[] { type, Integer.toString(offset), "" });
 				localVarCount++;
 

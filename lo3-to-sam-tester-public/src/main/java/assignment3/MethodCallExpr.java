@@ -17,6 +17,7 @@ public class MethodCallExpr implements Expr {
     @Override
     public String generateCode(SymbolTable symbolTable, ClassInfo classInfo, Map<String, ClassInfo> classTables) throws CompileException {
         String classInstanceNameStr = ((IdentifierExpr) objName).name;
+        System.out.println("classInstanceNameStr="+classInstanceNameStr);
         System.out.println("methodName="+methodName);
 
         Type classType = objName.getType(symbolTable, classInfo, classTables);
@@ -32,7 +33,7 @@ public class MethodCallExpr implements Expr {
 
         for (Expr arg : this.arguments) {
             // new FieldAssignExpr(arg, )
-            // System.out.println("arg="+arg);
+            System.out.println("arg="+arg+ " type="+arg.getType(symbolTable, classInfo, classTables));
             code.append(arg.generateCode(symbolTable, classInfo, classTables));
         }
 
@@ -47,8 +48,8 @@ public class MethodCallExpr implements Expr {
     @Override
     public Type getType(SymbolTable symbolTable, ClassInfo classInfo, Map<String, ClassInfo> classTables) throws CompileException {
         String classInstanceNameStr = ((IdentifierExpr) objName).name;
-        // System.out.println("classInstanceNameStr="+classInstanceNameStr);
-        
+        System.out.println("classInstanceNameStr="+classInstanceNameStr);
+        System.out.println("methodName="+methodName);
         Type classType = objName.getType(symbolTable, classInfo, classTables);
         
         if (classType.toString().equals(classInstanceNameStr)) {

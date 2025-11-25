@@ -64,6 +64,7 @@ public class NewExpr implements Expr {
         for (int i = 1; i < objectSize; i++) { // arguments.size()varguments.size(); i++) { //
             if (i < arguments.size()) {
                 Expr arg = arguments.get(i);
+                // System.out.println("arg type in new expr="+arg.getType(symbolTable, classInfo, classTables));
                 code.append(arg.generateCode(symbolTable, classInfo, classTables));
             } 
             else {

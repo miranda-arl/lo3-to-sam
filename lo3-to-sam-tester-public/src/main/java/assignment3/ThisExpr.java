@@ -28,6 +28,11 @@ public class ThisExpr implements Expr {
         System.out.println("field this with offset=" +fieldInfo.offset);
         // 'this' refers to the first field
         int index = fieldInfo.offset;
-        return  "PUSHOFF "+ (index +1)+ "\n";// "DUP\n"; // 0\n";// +
+        if (currentClassName.equals("Main")) {
+            return  "PUSHOFF "+ (index +1)+ "\n";
+        } else {
+            return  "PUSHOFF "+ (index +1)+ "\n";
+        }
+        // "DUP\n"; // 0\n";// +
     }
 }
