@@ -20,6 +20,16 @@ public class IdentifierExpr implements Expr {
         // 2. Class fields
         if (symbolTable != null && symbolTable.currentClass != null) {
             // ClassInfo currentClassInfo = classTables.get(symbolTable.currentClass);
+            System.out.println("clas field type name="+name);
+            for (FieldInfo field : classInfo.fields) {
+                if (field.name.equals(name)) {
+                    return Type.fromString(field.type);
+                }
+            }
+        }
+
+        // 3. Class field before method parsing
+        if (classInfo.fields != null) {
             for (FieldInfo field : classInfo.fields) {
                 if (field.name.equals(name)) {
                     return Type.fromString(field.type);
@@ -38,17 +48,31 @@ public class IdentifierExpr implements Expr {
 
     @Override
     public String generateCode(SymbolTable symbolTable, ClassInfo classInfo, Map<String, ClassInfo> classTables) throws CompileException {
-        // System.out.println("identifier expr name="+name);
-        
+        System.out.println("identifier expr name="+name);
+        Type t = getType(symbolTable, classInfo, classTables);
+        System.out.println("TYPE="+getType(symbolTable, classInfo, classTables));
+
         if (symbolTable != null && symbolTable.containsKey(name)) {
             int offset = Integer.parseInt(symbolTable.getLocation(name));
             // System.out.println("inside symbol id+++++++++"+name);
-            return "PUSHOFF " + offset + "\n";
+            if (t.isBuiltin()) {
+                // maybe here
+                return "PUSHOFF " + offset + "\n";
+            } else {
+                System.out.println("NOT BUILT IN");
+                return "PUSHOFF " + offset + "\n"; //+ 
+                // "PUSHIMM 1\nADD\nPUSHIND\n";
+            }
         }
         
         if (symbolTable != null && symbolTable.currentClass != null) {
             for (FieldInfo field : classInfo.fields) {
                 // System.out.println("OFFSET="+field.offset);
+                System.out.println("OFFSET inside id="+field.offset);
+                int size = classInfo.fields.size();
+
+                int offset = size+1; 
+                // this -1?
                 if (field.name.equals(name)) {
                     return "PUSHOFF -1\n" +// -(field.offset) + "\n" +
                     "PUSHIMM " + field.offset + "\n" +
@@ -63,7 +87,8 @@ public class IdentifierExpr implements Expr {
             for (FieldInfo field : classInfo.fields) {
                 if (field.name.equals(name)) {
                     System.out.println("name in identifier expr="+name+ " offset="+field.offset);
-                    return "PUSHOFF " + field.offset + "\n";
+                    //return "PUSHOFF " + field.offset + "\n";
+                    return "PUSHOFF " + (field.offset+1) + "\n"; // if main
                 }
             }
         }
