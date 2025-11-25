@@ -18,7 +18,7 @@ STOREOFF -2
 ADDSP -0
 JUMPIND
 Main_main:
-ADDSP 2
+ADDSP 3
 PUSHIMM 0
 LINK
 PUSHIMM 1
@@ -42,5 +42,5 @@ ADDSP -1
 JUMP end_Main_main_3
 end_Main_main_3:
 STOREOFF 0
-ADDSP -1
+ADDSP -2
 STOP
