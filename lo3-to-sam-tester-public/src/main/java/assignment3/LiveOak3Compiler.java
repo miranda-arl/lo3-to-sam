@@ -312,8 +312,8 @@ public class LiveOak3Compiler
 				}
 
 				Expr mainExpr = new NewExpr("Main", decl);
-				return "Main_new_start:\n ADDSP " + (decl.size()-1) + "\n" + mainExpr.generateCode(globalSymbolTable, classInfo, classTable) + "JUMP Main_main\n" +
-				"Main_new:\nJUMPIND\n";
+				return "Main_new_start:\n PUSHIMM 0\n" + mainExpr.generateCode(globalSymbolTable, classInfo, classTable) + "JUMP Main_main\n" +
+				"Main_new:\nJUMPIND\n";//ADDSP " + (decl.size()) 
 			}
 
 			return generateImplicitConstructorCode(className, classInfo);
@@ -543,12 +543,20 @@ public class LiveOak3Compiler
 				throw new CompileException("missing closing brace for method");
 			}
 
-			String prologue = "ADDSP ";
+			String prologue = ""; //ADDSP ";
+			
 			if (currentMethodName.equals("Main_main")) {
-				System.out.println("In Main_main ADDSP ="+(localVarCount + 2));
-				prologue += (localVarCount + 2) + "\n"; //1
+				// System.out.println("In Main_main ADDSP ="+(localVarCount + 2));
+				// prologue += (localVarCount) + "\n"; //1 2
+				for (int i = 0; i < (localVarCount+2); i++) { // 2
+					prologue += "PUSHIMM 0\n"; 
+				} 
 			} else {
-				prologue += (localVarCount) + "\n";
+				//prologue += (localVarCount) + "\n";
+				System.out.println("non=MAIN method loc vars="+localVarCount+ " for "+currentMethodName);
+				for (int i = 0; i < (localVarCount); i++) { // -2
+					prologue += "PUSHIMM 0\n"; 
+				}
 			}
 
 			int rvIndex = 0;
@@ -557,19 +565,20 @@ public class LiveOak3Compiler
 			}
 
 			String epilogue = 
-			currentMethodEndLabel + ":\n" + 
-			"STOREOFF " + rvIndex + "\n" + 
-			"ADDSP -" + localVarCount + "\n";
+				currentMethodEndLabel + ":\n" + 
+				"STOREOFF " + rvIndex + "\n" + 
+				"ADDSP -" + localVarCount + "\n";
 
 			if (currentMethodName.equals("Main_main")) {
 				epilogue = currentMethodEndLabel + ":\n" + 
 					"STOREOFF " + rvIndex + "\n" + 
-					"ADDSP -" + (localVarCount + 1) + "\n";
+					"ADDSP -" + (localVarCount + 3) + "\n";//1 (2 extra and 1 rv)
 			}
 
 			if (methodName.equals("new")) {
+				prologue = "";
 				for (int i = 0; i < (localVarCount + 1); i++) {
-					prologue = "PUSHIMM 0\n"; 
+					prologue += "PUSHIMM 0\n"; 
 				}
 				String middle = initializeInstanceFields(methodSymbolTable, currClassInfo);
 				epilogue = currentMethodEndLabel + ":\n" + "POPFBR\nJUMPIND\n";
@@ -818,7 +827,7 @@ public class LiveOak3Compiler
 								offset = (methodInfo.paramTypes.size()) - (formalsCount + 2);
 								System.out.println("IS NOT CONSTRUCTOR formal offset="+offset);
 							} else {
-								offset = formalsCount + 1; 
+								offset = formalsCount + 1; // (25 with 2, 18 with)
 								System.out.println("IS CONSTRUCTOR formal offset="+offset);
 							}
 						} 
@@ -877,7 +886,7 @@ public class LiveOak3Compiler
 				// one for link, one for fbr
 				int offset = 2  + localVarCount; // +1 more?
 				if (currentMethodName.equals("Main_main")) {
-					offset = 1 + localVarCount; // one for rv and 1 for this
+					offset = 2 + localVarCount; // one for rv and 1 for this
 					// 2 (28), 1 (18)
 				}
 				System.out.println("varName in decl="+varName+ " offset="+offset);
@@ -1032,7 +1041,7 @@ public class LiveOak3Compiler
 										} else {
 											varAttr[1] = Integer.toString(field.offset +1); // no 1
 											if (currentMethodName.equals("Main_main")) {
-												varAttr[1] = Integer.toString(field.offset);
+												varAttr[1] = Integer.toString(field.offset+1); //
 											}
 											// yes +1 for field var in non
 											// no for r assignment

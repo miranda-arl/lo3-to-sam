@@ -86,7 +86,7 @@ public class IdentifierExpr implements Expr {
             for (FieldInfo field : classInfo.fields) {
                 if (field.name.equals(name)) {
                     System.out.println("name in identifier expr="+name+ " offset="+field.offset);
-                    return "PUSHOFF " + (field.offset+1) + "\n"; // if main
+                    return "PUSHOFF " + (field.offset) + "\n"; // if main +1
                 }
             }
         }

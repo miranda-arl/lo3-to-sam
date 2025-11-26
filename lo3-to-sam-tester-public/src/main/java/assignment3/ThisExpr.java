@@ -29,10 +29,10 @@ public class ThisExpr implements Expr {
         // 'this' refers to the first field
         int index = fieldInfo.offset;
         if (currentClassName.equals("Main")) {
-            return  "PUSHOFF "+ (index +1)+ "\n";
+            return  "PUSHOFF "+ (index + 1)+ "\n";
         } else {
-            return  "PUSHOFF "+ (index +1)+ "\n";
+            // 
+            return  "PUSHOFF "+ (index + 2)+ "\n";//"PUSHFBR\nPUSHIMM 0\nPOPFBR\n"+ "PUSHOFF "+ (index + 2)+ "\n";
         }
-        // "DUP\n"; // 0\n";// +
     }
 }

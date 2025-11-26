@@ -1,23 +1,5 @@
 start:
-JUMP Main_new_start
-Main_new_start:
- ADDSP 1
-PUSHIMM 0
-LINK
-PUSHIMM 1
-MALLOC
-PUSHSP
-PUSHIMM 2
-SUB
-PUSHFBR
-JSR Main_new
-POPFBR
-ADDSP -1
-STOREOFF -1
-POPFBR
 JUMP Main_main
-Main_new:
-JUMPIND
 maxofthree_new:
 PUSHIMM 0
 PUSHIMM 8
@@ -50,6 +32,7 @@ end_maxofthree_new_50:
 POPFBR
 JUMPIND
 maxofthree_result:
+ADDSP 0
 PUSHOFF -1
 PUSHIMM 1
 ADD
@@ -112,7 +95,7 @@ STOREOFF -2
 ADDSP -0
 JUMPIND
 Main_main:
-PUSHIMM 0
+ADDSP 3
 PUSHIMM 0
 LINK
 PUSHIMM 4
@@ -131,7 +114,7 @@ STOREOFF -1
 POPFBR
 STOREOFF 2
 PUSHIMM 0
-PUSHOFF 2
+PUSHOFF 1
 LINK
 JSR maxofthree_result
 POPFBR

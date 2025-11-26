@@ -29,8 +29,7 @@ public class MethodCallExpr implements Expr {
         StringBuilder code = new StringBuilder();
 
         code.append("PUSHIMM 0\n"); // Push a dummy return address
-        // code.append(new ThisExpr(((IdentifierExpr) objName).name).generateCode(symbolTable, globalSymbolTable, classTables)); // add 'this' as first actual
-
+        
         for (Expr arg : this.arguments) {
             // new FieldAssignExpr(arg, )
             System.out.println("arg="+arg+ " type="+arg.getType(symbolTable, classInfo, classTables));
